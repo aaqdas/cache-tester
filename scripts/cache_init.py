@@ -3,17 +3,19 @@ import os
 import numpy as np
 import random
 
-def int_to_hex(n):
+WRITE_PATH = "../init_files/"
+
+def int_to_bin(n):
     """
-    Converts an integer to a hexadecimal string without the '0x' prefix.
+    Converts an integer to a binary string without the '0b' prefix.
     
     Parameters:
     n (int): The integer to convert.
 
     Returns:
-    str: The hexadecimal representation of the integer.
+    str: The binary representation of the integer.
     """
-    return format(n, 'x')
+    return format(n, '032b')
 
 
 def generate_random_numbers(n):
@@ -26,19 +28,32 @@ def generate_random_numbers(n):
     Returns:
     List[int]: A list containing n random numbers in the specified range.
     """
-    return [int_to_hex(random.randint(0, 2**32 - 1)) for _ in range(n)]
+    return [int_to_bin(random.randint(0, 2**32 - 1)) for _ in range(n)]
+
+def write_cache_to_file(filename,data):
+    with open(f"{WRITE_PATH}{filename}.bin",'w') as fd:
+        for block in range(0,len(data[0][:])):
+            for field in range(0,len(data)):
+                fd.write(data[field][block])
+            fd.write('\n')
+
+
 
 
 def cache_init(blocks,wordsPerBlock,associativity,cache_type='set'):
-    if not os.path.isdir('../init_files/'):
-        os.mkdir('../init_files/')
+    if not os.path.isdir(WRITE_PATH):
+        os.mkdir(WRITE_PATH)
     
     for ways in range(0,associativity):   
         cacheData = []
         for words in range(0,wordsPerBlock):
             cacheData.append(generate_random_numbers(blocks))
+        write_cache_to_file(f"way{ways}",cacheData)
+        
     #print(np.array(cacheData).shape)
-    print(cacheData[0][0])            
+    # print(cacheData[0][0])     
+    # print(len(cacheData[0]))
+                   
 
 if __name__=='__main__':
     argumentList = sys.argv[1:]
