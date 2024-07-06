@@ -6,33 +6,6 @@ from cache_utils import *
 from cache_gen_phys_addr import *
 from cache_logger import *
 import macros
-# WRITE_PATH = "../init_files/"
-# PHYSICAL_ADDRESS_SZ = 16
-# BYTES_PER_WORD = 4
-# def int_to_n_bits_bin(n,bits):
-#     """
-#     Converts an integer to a binary string without the '0b' prefix.
-    
-#     Parameters:
-#     n (int): The integer to convert.
-
-#     Returns:
-#     str: The binary representation of the integer.
-#     """
-#     return format(n, f'0{bits}b')
-
-
-# def generate_random_numbers(n,bits):
-#     """
-#     Generates a list of n random numbers in the range 0 to 2^32-1.
-    
-#     Parameters:
-#     n (int): The number of random numbers to generate.
-
-#     Returns:
-#     List[int]: A list containing n random numbers in the specified range.
-#     """
-#     return [int_to_n_bits_bin(random.randint(0, 2**bits - 1),bits) for _ in range(n)]
 
 def write_cache_to_file(filename,data):
     with open(f"{macros.WRITE_PATH}{filename}.bin",'w') as fd:
@@ -48,26 +21,58 @@ def cache_init(blocks,wordsPerBlock,associativity):
     if not os.path.isdir(macros.WRITE_PATH):
         os.mkdir(macros.WRITE_PATH)
     
-    # Generates and Writes Physical Address To Files and Returns List of Physical Addresses in Binary String
-    cache_phys_addr = write_phys_addr_to_file('phys_addr_buffer')
     # Computes Size of Cache Tag in Bits
-    cacheTagSize= macros.PHYSICAL_ADDRESS_SZ-math.log2(wordsPerBlock*macros.BYTES_PER_WORD)-math.log2(blocks)
+    cacheTagSize= int(macros.PHYSICAL_ADDRESS_SZ-math.log2(wordsPerBlock*macros.BYTES_PER_WORD)-math.log2(blocks))
+    
+    # Generates and Writes Physical Address To Files and Returns List of Physical Addresses in Binary String
+    cache_phys_addr             = write_phys_addr_to_file('phys_addr_buffer')
+    cache_computed_tag          = [compute_tag(addr,cacheTagSize) for addr in cache_phys_addr]
+    cache_computed_byte_offset  = [compute_byte_offset(addr,wordsPerBlock) for addr in cache_phys_addr]
+    cache_computed_block_idx    = [compute_block_idx(addr,blocks,wordsPerBlock) for addr in cache_phys_addr]
+    print(f"Phyiscal Address Length: {len(cache_phys_addr[0])} ; " +
+           f"Tag Length: {len(cache_computed_tag[1])} ; ")
+    
+    random_sample_indices   = random.sample(list(range(0,macros.TEST_CASES)),int(random.random()*0.75*blocks))
+    if blocks > 1:
+        random_sample_tag       = [cache_computed_tag[index] for index in random_sample_indices]
+        random_sample_block_idx = [cache_computed_block_idx[index] for index in random_sample_indices]
+
+        # unique_tag_indices       = unique_indices(random_sample_tag)
+        unique_block_idx_indices = find_unique_indices(random_sample_block_idx)
+        # unique_indices           = set(unique_tag_indices).intersection(set(unique_block_idx_indices))
+
+        unique_rand_tags        = [random_sample_tag[index] for index in unique_block_idx_indices]
+        unique_rand_block_idx   = [random_sample_block_idx[index] for index in unique_block_idx_indices]
+
+        way_update_mapping = generate_column_orthagonal_matrix(len(unique_block_idx_indices))
+    else:
+        random_sample_tag       = [cache_computed_tag[index] for index in random_sample_indices]
+        unique_tag_indices       = find_unique_indices(random_sample_tag)
+        unique_rand_tags        = [random_sample_tag[index] for index in unique_tag_indices]
+        way_update_mapping = [[1]]*len(unique_tag_indices)
+
+#TO DO: In greater associativity, the same tag would be found in multiple cases 
+    # print(unique_rand_block_idx)
+    print(f"Replacing {len(unique_rand_block_idx)} {max(unique_rand_block_idx)} {min(unique_rand_block_idx)}")
     cacheData = []
     for ways in range(0,associativity):   
         cacheWay = []
-        cacheWay.append(generate_random_numbers(blocks,1))             #Cache Valid Bits
+        cacheWay.append(['1']*blocks)
+        # cacheWay.append(generate_random_numbers(blocks,1))             #Cache Valid Bits
         cacheWay.append(generate_random_numbers(blocks,cacheTagSize))  #Cache Tags
+        # cacheWay.append(cache_computed_tag[0:blocks])
         for words in range(0,wordsPerBlock):
             cacheWay.append(generate_random_numbers(blocks,32))
+
+        cacheWay = update_cache(cacheWay,unique_rand_tags,unique_rand_block_idx,way_update_mapping)
+        # print(np.array(cacheWay).shape)
+
         write_cache_to_file(f"way{ways}",cacheWay)
         cacheData.append(cacheWay)
         print(f"Cache Size (Ways,Fields,Blocks){np.array(cacheData).shape}")
 
-    cache_computed_tag         = [compute_tag(addr,blocks,wordsPerBlock) for addr in cache_phys_addr]
-    cache_computed_byte_offset = [compute_byte_offset(addr,wordsPerBlock) for addr in cache_phys_addr]
-    cache_computed_block_idx = [compute_block_idx(addr,blocks,wordsPerBlock) for addr in cache_phys_addr]
+    
     log_accesses('access',cacheData,cache_phys_addr,cache_computed_tag,cache_computed_block_idx,cache_computed_byte_offset,associativity)
-    #print(np.array(cacheWay).shape)
     # print(cacheWay[0][0])     
     # print(len(cacheWay[0]))
                    
