@@ -50,7 +50,7 @@ endfunction
     #5;
     rst_n_i = 1;
     fd = write_file(filename); // Call function to write data to file
-    #40960
+    #81920
     $finish();
   end
 
