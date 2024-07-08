@@ -57,8 +57,8 @@ def cache_init(blocks,wordsPerBlock,associativity):
     cacheData = []
     for ways in range(0,associativity):   
         cacheWay = []
-        cacheWay.append(['1']*blocks)
-        # cacheWay.append(generate_random_numbers(blocks,1))             #Cache Valid Bits
+        # cacheWay.append(['1']*blocks)
+        cacheWay.append(generate_random_numbers(blocks,1))             #Cache Valid Bits
         cacheWay.append(generate_random_numbers(blocks,cacheTagSize))  #Cache Tags
         # cacheWay.append(cache_computed_tag[0:blocks])
         for words in range(0,wordsPerBlock):
