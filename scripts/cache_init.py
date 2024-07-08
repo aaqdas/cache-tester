@@ -32,28 +32,31 @@ def cache_init(blocks,wordsPerBlock,associativity):
     print(f"Phyiscal Address Length: {len(cache_phys_addr[0])} ; " +
            f"Tag Length: {len(cache_computed_tag[1])} ; ")
     
-    random_sample_indices   = random.sample(list(range(0,macros.TEST_CASES)),int(random.random()*0.75*blocks))
+    random_sample_indices   = random.sample(list(range(0,macros.TEST_CASES)),int(random.random()*0.75*blocks*associativity))
     if blocks > 1:
         random_sample_tag       = [cache_computed_tag[index] for index in random_sample_indices]
         random_sample_block_idx = [cache_computed_block_idx[index] for index in random_sample_indices]
 
-        # unique_tag_indices       = unique_indices(random_sample_tag)
+        # unique_tag_indices       = find_unique_indices(random_sample_tag)
         unique_block_idx_indices = find_unique_indices(random_sample_block_idx)
         # unique_indices           = set(unique_tag_indices).intersection(set(unique_block_idx_indices))
 
         unique_rand_tags        = [random_sample_tag[index] for index in unique_block_idx_indices]
         unique_rand_block_idx   = [random_sample_block_idx[index] for index in unique_block_idx_indices]
 
-        way_update_mapping = generate_column_orthagonal_matrix(len(unique_block_idx_indices))
+        way_update_mapping = generate_column_orthagonal_matrix(len(unique_block_idx_indices),associativity)
     else:
         random_sample_tag       = [cache_computed_tag[index] for index in random_sample_indices]
+        random_sample_block_idx = [cache_computed_block_idx[index] for index in random_sample_indices]
         unique_tag_indices       = find_unique_indices(random_sample_tag)
         unique_rand_tags        = [random_sample_tag[index] for index in unique_tag_indices]
-        way_update_mapping = [[1]]*len(unique_tag_indices)
-
+        unique_rand_block_idx   = [random_sample_block_idx[index] for index in unique_tag_indices]
+        way_update_mapping = generate_column_orthagonal_matrix(len(unique_tag_indices),associativity)
+    # print(f"{tuple((unique_rand_block_idx,unique_rand_tags))}")
+    # print(way_update_mapping)
 #TO DO: In greater associativity, the same tag would be found in multiple cases 
     # print(unique_rand_block_idx)
-    print(f"Replacing {len(unique_rand_block_idx)} {max(unique_rand_block_idx)} {min(unique_rand_block_idx)}")
+   
     cacheData = []
     for ways in range(0,associativity):   
         cacheWay = []
@@ -63,19 +66,24 @@ def cache_init(blocks,wordsPerBlock,associativity):
         # cacheWay.append(cache_computed_tag[0:blocks])
         for words in range(0,wordsPerBlock):
             cacheWay.append(generate_random_numbers(blocks,32))
-
-        cacheWay = update_cache(cacheWay,unique_rand_tags,unique_rand_block_idx,way_update_mapping)
-        # print(np.array(cacheWay).shape)
+        print(f"Updates in Way {ways}:")
+        cacheWay = update_cache(cacheWay,unique_rand_tags,unique_rand_block_idx,[update_mapping[ways] for update_mapping in way_update_mapping])
+        
 
         write_cache_to_file(f"way{ways}",cacheWay)
         cacheData.append(cacheWay)
-        print(f"Cache Size (Ways,Fields,Blocks){np.array(cacheData).shape}")
+        
 
     
     log_accesses('access',cacheData,cache_phys_addr,cache_computed_tag,cache_computed_block_idx,cache_computed_byte_offset,associativity)
     # print(cacheWay[0][0])     
     # print(len(cacheWay[0]))
-                   
+    # print(random_sample_indices)
+    try:
+        print(f"Replaced {len(unique_rand_block_idx)} {len(unique_rand_tags)} {max(unique_rand_block_idx)} {min(unique_rand_block_idx)}")
+    except:
+        print(f"Replaced {len(unique_rand_block_idx)} {len(unique_rand_tags)}")
+    print(f"Cache Size (Ways,Fields,Blocks){np.array(cacheData).shape}")               
 
 if __name__=='__main__':
     argumentList = sys.argv[1:]
@@ -114,5 +122,4 @@ if __name__=='__main__':
     except getopt.error as err:
         # output error, and return with an error code
         print (str(err))
-
     cache_init(cacheBlocks,cacheWordsPerBlock,cacheAssociativity)

@@ -2,6 +2,7 @@
 import random
 import math
 import macros
+import numpy as np
 
 def int_to_n_bits_bin(n,bits=16):
     """
@@ -164,10 +165,15 @@ def find_unique_indices(items):
 
 
 def update_cache(cacheWay,unique_rand_tags,unique_rand_block_idx,way_update_mapping):
-    TAG_FIELD=1
-    iterator = 0
-    for indices in unique_rand_block_idx:
-        if way_update_mapping[iterator]:
+    TAG_FIELD = 1
+    # iterator = 0
+    updates=0
+    # print(way_update_mapping)
+    # print(unique_rand_tags[len(unique_rand_block_idx)-1])
+    for iterator, indices in enumerate(unique_rand_block_idx):
+        if way_update_mapping[iterator]:  
+            # print(f"{way_update_mapping[iterator]},{indices}")
             cacheWay[TAG_FIELD][indices]=unique_rand_tags[iterator]
-
+            updates = updates + 1
+    print(f"Updated {updates} blocks")
     return cacheWay
